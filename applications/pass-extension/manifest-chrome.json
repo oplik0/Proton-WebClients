@@ -71,6 +71,20 @@
         "48": "/assets/protonpass-icon-48.png",
         "128": "/assets/protonpass-icon-128.png"
     },
+    "commands": {
+        "autofill_login": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+L"
+            },
+            "description": "Autofill login credentials"
+        },
+        "lock_vault": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+K"
+            },
+            "description": "Lock the vault"
+        }
+    },
     "web_accessible_resources": [
         {
             "resources": [

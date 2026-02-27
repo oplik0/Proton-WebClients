@@ -10,7 +10,7 @@ import { contentScriptMessage, sendMessage } from 'proton-pass-extension/lib/mes
 import type { AutofillRequest, AutofillResult } from 'proton-pass-extension/types/autofill';
 import { WorkerMessageType } from 'proton-pass-extension/types/messages';
 
-import { CCFieldType, FieldType } from '@proton/pass/fathom/labels';
+import { CCFieldType, FieldType, FormType } from '@proton/pass/fathom/labels';
 import { passwordSave } from '@proton/pass/store/actions/creators/password';
 import type { ItemContent } from '@proton/pass/types/data/items';
 import { TelemetryEventName } from '@proton/pass/types/data/telemetry';
@@ -318,6 +318,34 @@ export const createAutofillService = ({ controller }: ContentScriptContextFactor
 
     controller.channel.register(WorkerMessageType.AUTOFILL_SEQUENCE, onAutofillRequest);
 
+    /** Handles direct autofill triggered via keyboard shortcut (Ctrl+Shift+L).
+     * The background service worker resolves the credentials and sends them
+     * directly to the content script. Targets the form containing the currently
+     * focused element, falling back to the first login form on the page. */
+    const onAutofillLoginCommand: FrameMessageHandler<WorkerMessageType.AUTOFILL_LOGIN_COMMAND> = withContext(
+        (ctx, { payload }) => {
+            const formManager = ctx?.service.formManager;
+            const forms = formManager?.getForms() ?? [];
+            const active = document.activeElement;
+
+            /** Prefer the login form that owns the currently focused field */
+            const focusedForm = active
+                ? forms.find(
+                      (form) =>
+                          form.formType === FormType.LOGIN && form.element.contains(active)
+                  )
+                : undefined;
+
+            const loginForm = focusedForm ?? forms.find((form) => form.formType === FormType.LOGIN);
+
+            if (loginForm) {
+                void autofillLogin(loginForm, payload);
+            }
+        }
+    );
+
+    controller.channel.register(WorkerMessageType.AUTOFILL_LOGIN_COMMAND, onAutofillLoginCommand);
+
     return {
         get processing() {
             return state.processing;
@@ -335,6 +363,7 @@ export const createAutofillService = ({ controller }: ContentScriptContextFactor
         sync,
         destroy: () => {
             controller.channel.unregister(WorkerMessageType.AUTOFILL_SEQUENCE, onAutofillRequest);
+            controller.channel.unregister(WorkerMessageType.AUTOFILL_LOGIN_COMMAND, onAutofillLoginCommand);
         },
     };
 };

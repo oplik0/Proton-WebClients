@@ -7,6 +7,7 @@ import { createAutoFillService } from 'proton-pass-extension/app/worker/services
 import { createAutoSaveService } from 'proton-pass-extension/app/worker/services/autosave';
 import { createB2BEventsService } from 'proton-pass-extension/app/worker/services/b2b';
 import { createClipboardService } from 'proton-pass-extension/app/worker/services/clipboard';
+import { createCommandsService } from 'proton-pass-extension/app/worker/services/commands';
 import { createPassCoreProxyService } from 'proton-pass-extension/app/worker/services/core';
 import { createFeatureFlagService } from 'proton-pass-extension/app/worker/services/feature-flags';
 import { createFormTrackerService } from 'proton-pass-extension/app/worker/services/form.tracker';
@@ -133,6 +134,9 @@ export const createWorkerContext = (config: ProtonConfig) => {
     context.service.spotlight.init().catch(noop);
     context.service.apiProxy.clean?.().catch(noop);
     context.service.i18n.init().catch(noop);
+
+    /* Initialize keyboard shortcut command handling */
+    createCommandsService().init();
 
     /* Watch for `lockSetup` state changes. Notify all extension
      * components on update in order for clients' states to sync. */
